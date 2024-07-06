@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scatterplot Graph</title>
+  <style>
+    /* Add your custom styles here */
+    .dot {
+      fill: steelblue;
+      stroke: white;
+      stroke-width: 1px;
+    }
+    #tooltip {
+      position: absolute;
+      background: #f9f9f9;
+      border: 1px solid #aaa;
+      padding: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Scatterplot Graph</h1>
+  
+  <svg id="scatterplot" width="800" height="400"></svg>
+  
+  <div id="tooltip"></div>
+  
+  <!-- Import D3.js -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Fetch data
+      fetch('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json')
+        .then(response => response.json())
+        .then(data => {
+          // Process data
+          data.forEach(d => {
+            d.Place = +d.Place; // Convert Place to number
+            d.Seconds = +d.Seconds; // Convert Seconds to number
+            d.Time = new Date(`1970-01-01T00:${d.Seconds}Z`); // Create Date object for Time
+          });
+          
+          // Set up dimensions
+          const margin = { top: 20, right: 20, bottom: 70, left: 70 };
+          const width = 800 - margin.left - margin.right;
+          const height = 400 - margin.top - margin.bottom;
+          
+          // Append SVG
+          const svg = d3.select('#scatterplot')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+          
+          // Create scales
+          const xScale = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Year - 1), d3.max(data, d => d.Year + 1)])
+            .range([0, width]);
+          
+          const yScale = d3.scaleTime()
+            .domain(d3.extent(data, d => d.Time))
+            .range([height, 0]);
+          
+          // Create axes
+          const xAxis = d3.axisBottom(xScale).tickFormat(d3.format('d'));
+          const yAxis = d3.axisLeft(yScale).tickFormat(d3.timeFormat('%M:%S'));
+          
+          svg.append('g')
+            .attr('id', 'x-axis')
+            .attr('transform', `translate(0, ${height})`)
+            .call(xAxis);
+          
+          svg.append('g')
+            .attr('id', 'y-axis')
+            .call(yAxis);
+          
+          // Create dots
+          svg.selectAll('.dot')
+            .data(data)
+            .enter().append('circle')
+            .attr('class', 'dot')
+            .attr('cx', d => xScale(d.Year))
+            .attr('cy', d => yScale(d.Time))
+            .attr('r', 5)
+            .attr('data-xvalue', d => d.Year)
+            .attr('data-yvalue', d => d.Time.toISOString())
+            .on('mouseover', (event, d) => {
+              const tooltip = document.getElementById('tooltip');
+              tooltip.innerHTML = `Year: ${d.Year}<br/>Time: ${d.Time.toISOString()}`;
+              tooltip.setAttribute('data-year', d.Year);
+              tooltip.style.display = 'block';
+              tooltip.style.left = `${event.pageX + 10}px`;
+              tooltip.style.top = `${event.pageY - 10}px`;
+            })
+            .on('mouseout', () => {
+              const tooltip = document.getElementById('tooltip');
+              tooltip.style.display = 'none';
+            });
+        });
+    });
+  </script>
+</body>
+</html>
